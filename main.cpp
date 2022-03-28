@@ -97,14 +97,29 @@ _go_close_socket:
 
 	return retval;
 }
+
+void print_help()
+{
+	constexpr char const* str{
+		"Usage: dump [options]\n"
+		"Options:\n"
+		"	--source <arg>       Sets the source ip.\n"
+		"	--dest <arg>         Sets the destination ip.\n"
+		"	--port_source <arg>  Sets the source port.\n"
+		"	--port_dest <arg>    Sets the destination port.\n"
+	};
+	cout << str;
+}
 int main(int argc, const char* argv[])
 {
 	ArgumentParser ap(argc, argv);
-	auto s = ap.get<uint32_t>("--help", 123);
-	cout << "S: " << s << endl;
-
-	auto f = ap.find("--help");
-	cout << "f: " << f << endl;
+	auto help_param_pos = ap.find("--help");
+	auto help_param_short_pos = ap.find("-h");
+	if (help_param_pos != -1 || help_param_short_pos != -1)
+	{
+		print_help();
+		return 0;
+	}
 
 	return 0;
 }
