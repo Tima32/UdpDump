@@ -12,6 +12,8 @@
 
 #include <iostream>
 #include <sstream>
+#include "ArgumentParserLib/ArgumentParser.hpp"
+
 using namespace std;
 
 #define MSG_SIZE 65535
@@ -28,7 +30,7 @@ string to_ip(uint32_t ipi)
 	return ss.str();
 }
 
-int main(int argc, const char* argv[]) {
+int my_main(int argc, const char* argv[]) {
 	if (argc != 4)
 	{
 		cerr << "Invalid number of arguments." << endl;
@@ -94,4 +96,15 @@ _go_close_socket:
 	close(raw_socket);
 
 	return retval;
+}
+int main(int argc, const char* argv[])
+{
+	ArgumentParser ap(argc, argv);
+	auto s = ap.get<uint32_t>("--help", 123);
+	cout << "S: " << s << endl;
+
+	auto f = ap.find("--help");
+	cout << "f: " << f << endl;
+
+	return 0;
 }
