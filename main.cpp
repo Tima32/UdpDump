@@ -26,6 +26,7 @@ vector<uint32_t> sources_ip_filter;
 vector<uint32_t> dest_ip_filter;
 vector<uint16_t> source_port_filter;
 vector<uint16_t> dest_port_filter;
+string interface;
 
 string to_ip(uint32_t ipi)
 {
@@ -104,6 +105,9 @@ void dump() {
 		return;
 	}
 
+	if (interface.size())
+		setsockopt(raw_socket, SOL_SOCKET, SO_BINDTODEVICE, interface.data(), interface.size());
+
 	while(1)
 	{
 		if ((msglen = recv(raw_socket, msg, MSG_SIZE, 0)) == -1) {
@@ -155,10 +159,11 @@ void print_help()
 	constexpr char const* str{
 		"Usage: dump [options]\n"
 		"Options:\n"
-		"	--src-ip <arg>       Sets the source ip.\n"
-		"	--dest-ip <arg>         Sets the destination ip.\n"
-		"	--src-port <arg>  Sets the source port.\n"
-		"	--dest-port <arg>    Sets the destination port.\n"
+		"	--interface <arg>    Sellect interface.\n"
+		"	--src-ip <arg>       Sets the source ip.        (multiple)\n"
+		"	--dest-ip <arg>      Sets the destination ip.   (multiple)\n"
+		"	--src-port <arg>     Sets the source port.      (multiple)\n"
+		"	--dest-port <arg>    Sets the destination port. (multiple)\n"
 	};
 	cout << str;
 }
@@ -252,6 +257,8 @@ int main(int argc, const char* argv[])
 
 			cout << "Set filter destination port: " << port_s << endl;
 		}
+
+		interface = ap.get<string>("--interface", "");
 	}
 	catch (const std::out_of_range& e)
 	{
