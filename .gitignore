@@ -1,1 +1,6 @@
 dump
+UdpDumpMSB.vcxproj
+UdpDumpMSB.vcxproj.filters
+UdpDumpMSB.vcxproj.user
+bin/
+obj/

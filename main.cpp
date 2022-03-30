@@ -7,11 +7,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <linux/ip.h> /* for ipv4 header */
+#include <linux/ip.h>  /* for ipv4 header */
 #include <linux/udp.h> /* for upd header */
 
 #include <iostream>
 #include <sstream>
+#include <limits>
 #include "ArgumentParserLib/ArgumentParser.hpp"
 
 using namespace std;
@@ -20,6 +21,11 @@ using namespace std;
 #define HEADER_SIZE (sizeof(struct iphdr) + sizeof(struct udphdr))
 
 size_t package_count{0}, bytes_count{0};
+
+vector<uint32_t> sources_ip_filter;
+vector<uint32_t> dest_ip_filter;
+vector<uint16_t> source_port_filter;
+vector<uint16_t> dest_port_filter;
 
 string to_ip(uint32_t ipi)
 {
@@ -30,18 +36,63 @@ string to_ip(uint32_t ipi)
 	return ss.str();
 }
 
-int my_main(int argc, const char* argv[]) {
-	if (argc != 4)
+bool SourceIpFilter(uint32_t ip)
+{
+	if (sources_ip_filter.size() == 0)
+		return true;
+
+	for (auto f : sources_ip_filter)
 	{
-		cerr << "Invalid number of arguments." << endl;
-		cerr << "<source ip> <port> <dest ip>" << endl;
-		return 1;
+		if (f == ip)
+			return true;
 	}
 
+	return false;
+}
+bool DestIpFilter(uint32_t ip)
+{
+	if (dest_ip_filter.size() == 0)
+		return true;
 
+	for (auto f : dest_ip_filter)
+	{
+		if (f == ip)
+			return true;
+	}
+
+	return false;
+}
+bool SourcePortFilter(uint16_t port)
+{
+	if (source_port_filter.size() == 0)
+		return true;
+
+	for (auto f : source_port_filter)
+	{
+		if (f == port)
+			return true;
+	}
+
+	return false;
+}
+bool DestPortFilter(uint16_t port)
+{
+	if (dest_port_filter.size() == 0)
+		return true;
+
+	for (auto f : dest_port_filter)
+	{
+		if (f == port)
+			return true;
+	}
+
+	return false;
+}
+
+void dump() {
 	int raw_socket;
 	//sockaddr_in sockstr;
-	socklen_t socklen;
+	socklen_t socklen{};
 
 	int retval = 0; 
 
@@ -50,10 +101,8 @@ int my_main(int argc, const char* argv[]) {
 
 	if ((raw_socket = socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) == -1) {
 		perror("socket");
-		return 1;
+		return;
 	}
-
-	uint16_t port = atoi(argv[2]);
 
 	while(1)
 	{
@@ -62,10 +111,6 @@ int my_main(int argc, const char* argv[]) {
 			retval = 1;
 			goto _go_close_socket;
 		}
-		
-		// increase counters
-		package_count++;
-		bytes_count += msglen;
 
 		if (msglen <= HEADER_SIZE)
 			cerr << "Bed package: wrong header seize." << endl;
@@ -73,12 +118,19 @@ int my_main(int argc, const char* argv[]) {
 			iphdr* th = (struct iphdr*)msg;
 			udphdr* udp = (udphdr*) (msg + sizeof(iphdr));
 
-			if (to_ip(th->saddr) != argv[1])
+			// filters
+			if (!SourceIpFilter(th->saddr))
 				continue;
-			if (to_ip(th->daddr) != argv[3])
+			if (!DestIpFilter(th->daddr))
 				continue;
-			if (ntohs(udp->dest) != port)
+			if (!SourcePortFilter(udp->source))
 				continue;
+			if (!DestPortFilter(udp->dest))
+				continue;
+
+			// increase counters
+			package_count++;
+			bytes_count += msglen;
 
 			cout << "Packages received: " << package_count << " bytes received: " << bytes_count;
 
@@ -95,7 +147,7 @@ int my_main(int argc, const char* argv[]) {
 _go_close_socket:
 	close(raw_socket);
 
-	return retval;
+	return;
 }
 
 void print_help()
@@ -103,16 +155,18 @@ void print_help()
 	constexpr char const* str{
 		"Usage: dump [options]\n"
 		"Options:\n"
-		"	--source <arg>       Sets the source ip.\n"
-		"	--dest <arg>         Sets the destination ip.\n"
-		"	--port_source <arg>  Sets the source port.\n"
-		"	--port_dest <arg>    Sets the destination port.\n"
+		"	--src-ip <arg>       Sets the source ip.\n"
+		"	--dest-ip <arg>         Sets the destination ip.\n"
+		"	--src-port <arg>  Sets the source port.\n"
+		"	--dest-port <arg>    Sets the destination port.\n"
 	};
 	cout << str;
 }
 int main(int argc, const char* argv[])
 {
 	ArgumentParser ap(argc, argv);
+
+	//help
 	auto help_param_pos = ap.find("--help");
 	auto help_param_short_pos = ap.find("-h");
 	if (help_param_pos != -1 || help_param_short_pos != -1)
@@ -120,6 +174,97 @@ int main(int argc, const char* argv[])
 		print_help();
 		return 0;
 	}
+
+	try
+	{
+		// --src-ip
+		for (size_t i = 0; i < ap.size(); ++i)
+		{
+			i = ap.find("--src-ip", i);
+			if (i == -1)
+				break;
+
+			const auto& ip_s = ap.at(i + 1);
+
+			in_addr_t a = inet_addr(ip_s.c_str());
+			if (a == INADDR_NONE)
+			{
+				cerr << "Error: bed ip in param " << i + 1 << endl;
+				return 1;
+			}
+			sources_ip_filter.push_back(a);
+
+			cout << "Set filter source ip: " << ip_s << endl;
+		}
+
+		// --dest-ip
+		for (size_t i = 0; i < ap.size(); ++i)
+		{
+			i = ap.find("--dest-ip", i);
+			if (i == -1)
+				break;
+
+			const auto& ip_s = ap.at(i + 1);
+
+			in_addr_t a = inet_addr(ip_s.c_str());
+			if (a == INADDR_NONE)
+			{
+				cerr << "Error: bed ip in param " << i + 1 << endl;
+				return 1;
+			}
+			dest_ip_filter.push_back(a);
+
+			cout << "Set filter destination ip: " << ip_s << endl;
+		}
+
+		// --src-port
+		for (size_t i = 0; i < ap.size(); ++i)
+		{
+			i = ap.find("--src-port", i);
+			if (i == -1)
+				break;
+
+			const auto& port_s = ap.at(i + 1);
+
+			stringstream ss;
+			ss << port_s;
+			uint16_t port;
+			ss >> port;
+			source_port_filter.push_back(ntohs(port));
+
+			cout << "Set filter source port: " << port_s << endl;
+		}
+
+		// --dest-port
+		for (size_t i = 0; i < ap.size(); ++i)
+		{
+			i = ap.find("--dest-port", i);
+			if (i == -1)
+				break;
+
+			const auto& port_s = ap.at(i + 1);
+
+			stringstream ss;
+			ss << port_s;
+			uint16_t port;
+			ss >> port;
+			dest_port_filter.push_back(ntohs(port));
+
+			cout << "Set filter destination port: " << port_s << endl;
+		}
+	}
+	catch (const std::out_of_range& e)
+	{
+		std::cerr << "Error: no command argument" << '\n';
+		exit(1);
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << "Error: " << e.what() << '\n';
+		exit(1);
+	}
+	
+	dump();
 
 	return 0;
 }
