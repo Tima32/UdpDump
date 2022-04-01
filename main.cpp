@@ -105,8 +105,14 @@ void dump() {
 		return;
 	}
 
-	if (interface.size())
-		setsockopt(raw_socket, SOL_SOCKET, SO_BINDTODEVICE, interface.data(), interface.size());
+	if (interface.size() &&
+		setsockopt(raw_socket, SOL_SOCKET, SO_BINDTODEVICE, interface.data(), interface.size()))
+	{
+		perror("setsockopt");
+		retval = 1;
+		goto _go_close_socket;
+	}
+		
 
 	while(1)
 	{
