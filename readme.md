@@ -16,6 +16,8 @@ Usage: udp-dump [uptions]
 -	--src-port <arg>     Sets the source port.      (multiple)
 -	--dest-port <arg>    Sets the destination port. (multiple)
 
+If no filters are specified, then all traffic is accepted.
+
 ## Example:
 ```sh
 udp-ump --interface enp0s3 --src-ip 192.168.0.2 --src-ip 192.168.0.3 --src-port 30123
