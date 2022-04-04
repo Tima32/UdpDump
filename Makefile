@@ -2,13 +2,15 @@ TARGET=udp-dump
 
 SOURCES=main.cpp
 
+CC=$(CROSS_COMPILE)g++
+
 OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
 
 %.o: %.cpp
-	g++ -c $^
+	$(CC) -c $^
 
 udp-dump: $(OBJECTS)
-	g++ $^ -o $@
+	$(CC) $^ -o $@
 
 all: udp-dump
 

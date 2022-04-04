@@ -28,7 +28,7 @@ vector<uint16_t> source_port_filter;
 vector<uint16_t> dest_port_filter;
 string interface;
 
-string to_ip(uint32_t ipi)
+string ToIP(uint32_t ipi)
 {
 	uint8_t* bytes = (uint8_t*)&ipi;
 
@@ -90,7 +90,7 @@ bool DestPortFilter(uint16_t port)
 	return false;
 }
 
-void dump() {
+void Dump() {
 	int raw_socket;
 	//sockaddr_in sockstr;
 	socklen_t socklen{};
@@ -145,8 +145,8 @@ void dump() {
 			cout << "Packages received: " << package_count << " bytes received: " << bytes_count;
 
 			cout << " proto: " << uint32_t(th->protocol) << 
-				" ip source: " << to_ip(th->saddr) << 
-				" ip dest: " << to_ip(th->daddr) <<
+				" ip source: " << ToIP(th->saddr) << 
+				" ip dest: " << ToIP(th->daddr) <<
 				" len: " << ntohs(th->tot_len) <<
 				" msgl: " << msglen;
 
@@ -160,7 +160,7 @@ _go_close_socket:
 	return;
 }
 
-void print_help()
+void PrintHelp()
 {
 	constexpr char const* str{
 		"Usage: dump [options]\n"
@@ -182,7 +182,7 @@ int main(int argc, const char* argv[])
 	auto help_param_short_pos = ap.find("-h");
 	if (help_param_pos != -1 || help_param_short_pos != -1)
 	{
-		print_help();
+		PrintHelp();
 		return 0;
 	}
 
@@ -277,7 +277,7 @@ int main(int argc, const char* argv[])
 		exit(1);
 	}
 	
-	dump();
+	Dump();
 
 	return 0;
 }
