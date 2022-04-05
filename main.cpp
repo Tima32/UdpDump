@@ -5,6 +5,8 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <linux/if_ether.h>
+//#include <linux/if_packet.h>
 #include <unistd.h>
 
 #include <linux/ip.h>  /* for ipv4 header */
@@ -100,7 +102,7 @@ void Dump() {
 	char msg[MSG_SIZE];
 	ssize_t msglen;
 
-	if ((raw_socket = socket(AF_INET, SOCK_RAW, IPPROTO_UDP)) == -1) {
+	if ((raw_socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) == -1) {
 		perror("socket");
 		return;
 	}
@@ -125,13 +127,14 @@ void Dump() {
 		if (msglen <= HEADER_SIZE)
 			cerr << "Bed package: wrong header seize." << endl;
 		else {
-			iphdr* th = (struct iphdr*)msg;
-			udphdr* udp = (udphdr*) (msg + sizeof(iphdr));
+			ethhdr* eth = (ethhdr*)        msg;
+			iphdr*  ip =  (struct iphdr*) (msg + sizeof(ethhdr));
+			udphdr* udp = (udphdr*)       (msg + sizeof(ethhdr) + sizeof(iphdr));
 
 			// filters
-			if (!SourceIpFilter(th->saddr))
+			if (!SourceIpFilter(ip->saddr))
 				continue;
-			if (!DestIpFilter(th->daddr))
+			if (!DestIpFilter(ip->daddr))
 				continue;
 			if (!SourcePortFilter(udp->source))
 				continue;
@@ -142,15 +145,23 @@ void Dump() {
 			package_count++;
 			bytes_count += msglen;
 
-			cout << "Packages received: " << package_count << " bytes received: " << bytes_count;
+			cout << "Packages received: " << package_count << " bytes received: " << bytes_count << ' ';
 
-			cout << " proto: " << uint32_t(th->protocol) << 
-				" ip source: " << ToIP(th->saddr) << 
-				" ip dest: " << ToIP(th->daddr) <<
-				" len: " << ntohs(th->tot_len) <<
+			printf("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x -> ",
+				eth->h_source[0], eth->h_source[1], eth->h_source[2],
+				eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+
+			printf("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\t",
+				eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
+				eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+
+			cout << " proto: " << uint32_t(ip->protocol) << 
+				" ip s: " << ToIP(ip->saddr) << 
+				" ip d: " << ToIP(ip->daddr) <<
+				" ip l: " << ntohs(ip->tot_len) <<
 				" msgl: " << msglen;
 
-			cout << " port source: " << ntohs(udp->source) << " port dest: " << ntohs(udp->dest) << endl;
+			cout << " port s: " << ntohs(udp->source) << " port d: " << ntohs(udp->dest) << endl;
 		}
 	}
 
