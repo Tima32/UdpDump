@@ -13,6 +13,7 @@
 #include <linux/udp.h> /* for upd header */
 
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <limits>
 #include <algorithm>
@@ -206,7 +207,7 @@ void Dump() {
 			package_count++;
 			bytes_count += msglen;
 
-			cout << "Packages received: " << package_count << " bytes received: " << bytes_count << ' ';
+			cout << "Packages received: " << package_count << " bytes received: " << bytes_count << '\t';
 
 			printf("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x -> ",
 				eth->h_source[0], eth->h_source[1], eth->h_source[2],
@@ -216,13 +217,13 @@ void Dump() {
 				eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
 				eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
 
-			cout << " proto: " << uint32_t(ip->protocol) << 
-				" ip s: " << ToIP(ip->saddr) << 
-				" ip d: " << ToIP(ip->daddr) <<
-				" ip l: " << ntohs(ip->tot_len) <<
-				" msgl: " << msglen;
+			cout << "\tproto: " << uint32_t(ip->protocol) << 
+				"\tip s: " << setw(15) << ToIP(ip->saddr) <<
+				"\tip d: " << setw(15) << ToIP(ip->daddr) <<
+				"\tip l: " << setw(5) << ntohs(ip->tot_len) <<
+				"\tmsgl: " << setw(5) << msglen;
 
-			cout << " port s: " << ntohs(udp->source) << " port d: " << ntohs(udp->dest) << endl;
+			cout << "\tport s: " << setw(5) << ntohs(udp->source) << "\tport d: " << setw(5) << ntohs(udp->dest) << endl;
 		}
 	}
 
