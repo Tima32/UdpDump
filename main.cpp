@@ -6,7 +6,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <linux/if_ether.h>
-//#include <linux/if_packet.h>
+#include <linux/if_packet.h>
+#include <ifaddrs.h>
+#include <net/if.h>
 #include <unistd.h>
 
 #include <linux/ip.h>  /* for ipv4 header */
@@ -148,6 +150,64 @@ bool DestMacFilter(uint8_t h_source[ETH_ALEN])
 	return false;
 }
 
+bool SetPromisc(const char* ifname, bool enable)
+{
+	packet_mreq mreq = { 0 };
+	int sfd;
+	int action;
+
+	if ((sfd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) == -1) {
+		perror("unable to open socket");
+		return false;
+	}
+
+	mreq.mr_ifindex = if_nametoindex(ifname);
+	mreq.mr_type = PACKET_MR_PROMISC;
+
+	if (mreq.mr_ifindex == 0) {
+		perror("unable to get interface index");
+		return false;
+	}
+
+	if (enable)
+		action = PACKET_ADD_MEMBERSHIP;
+	else
+		action = PACKET_DROP_MEMBERSHIP;
+
+	if (setsockopt(sfd, SOL_PACKET, action, &mreq, sizeof(mreq)) != 0) {
+		perror("unable to enter promiscouous mode");
+		return false;
+	}
+
+	close(sfd);
+	return true;
+}
+bool SetPromiscAll(bool enable)
+{
+	struct ifaddrs* addrs, * tmp;
+
+	getifaddrs(&addrs);
+	tmp = addrs;
+
+	while (tmp)
+	{
+		if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET)
+		{
+			printf("%s\n", tmp->ifa_name);
+			bool status = SetPromisc(tmp->ifa_name, enable);
+			if (status == false && enable == true)
+			{
+				SetPromiscAll(false);
+				return false;
+			}
+		}
+
+		tmp = tmp->ifa_next;
+	}
+
+	freeifaddrs(addrs);
+	return true;
+}
 void Dump() {
 	int raw_socket;
 	//sockaddr_in sockstr;
@@ -388,6 +448,23 @@ int main(int argc, const char* argv[])
 		}
 
 		interface = ap.get<string>("--interface", "");
+		if (interface.size())
+		{
+			if (!SetPromisc(interface.c_str(), true))
+			{
+				cerr << "Error active promisc mode." << endl;
+				exit(1);
+			}
+		}
+		else 
+		{
+			if (!SetPromiscAll(true))
+			{
+				cerr << "Error active promisc mode." << endl;
+				exit(1);
+			}
+		}
+		
 	}
 	catch (const std::out_of_range& e)
 	{
