@@ -15,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <limits>
+#include <algorithm>
 #include "ArgumentParserLib/ArgumentParser.hpp"
 
 using namespace std;
@@ -26,8 +27,16 @@ size_t package_count{0}, bytes_count{0};
 
 vector<uint32_t> sources_ip_filter;
 vector<uint32_t> dest_ip_filter;
-vector<uint16_t> source_port_filter;
+
+vector<uint16_t> sources_port_filter;
 vector<uint16_t> dest_port_filter;
+
+struct mac
+{
+	unsigned char arr[ETH_ALEN];
+};
+vector<mac> sources_mac_filter;
+vector<mac> dest_mac_filter;
 string interface;
 
 string ToIP(uint32_t ipi)
@@ -67,10 +76,10 @@ bool DestIpFilter(uint32_t ip)
 }
 bool SourcePortFilter(uint16_t port)
 {
-	if (source_port_filter.size() == 0)
+	if (sources_port_filter.size() == 0)
 		return true;
 
-	for (auto f : source_port_filter)
+	for (auto f : sources_port_filter)
 	{
 		if (f == port)
 			return true;
@@ -87,6 +96,52 @@ bool DestPortFilter(uint16_t port)
 	{
 		if (f == port)
 			return true;
+	}
+
+	return false;
+}
+bool SourceMacFilter(uint8_t h_source[ETH_ALEN])
+{
+	if (sources_mac_filter.size() == 0)
+		return true;
+
+	for (auto f : sources_mac_filter)
+	{
+		bool compare{ true };
+		for (size_t i = 0; i < ETH_ALEN; ++i)
+		{
+			if (h_source[i] != f.arr[i])
+			{
+				compare = false;
+				break;
+			}
+		}
+		if (compare)
+			return true;
+		
+	}
+
+	return false;
+}
+bool DestMacFilter(uint8_t h_source[ETH_ALEN])
+{
+	if (dest_mac_filter.size() == 0)
+		return true;
+
+	for (auto f : dest_mac_filter)
+	{
+		bool compare{ true };
+		for (size_t i = 0; i < ETH_ALEN; ++i)
+		{
+			if (h_source[i] != f.arr[i])
+			{
+				compare = false;
+				break;
+			}
+		}
+		if (compare)
+			return true;
+
 	}
 
 	return false;
@@ -136,9 +191,15 @@ void Dump() {
 				continue;
 			if (!DestIpFilter(ip->daddr))
 				continue;
+
 			if (!SourcePortFilter(udp->source))
 				continue;
 			if (!DestPortFilter(udp->dest))
+				continue;
+
+			if (!SourceMacFilter(eth->h_source))
+				continue;
+			if (!DestMacFilter(eth->h_dest))
 				continue;
 
 			// increase counters
@@ -181,6 +242,8 @@ void PrintHelp()
 		"	--dest-ip <arg>      Sets the destination ip.   (multiple)\n"
 		"	--src-port <arg>     Sets the source port.      (multiple)\n"
 		"	--dest-port <arg>    Sets the destination port. (multiple)\n"
+		"	--src-mac <arg>      Sets the source mac.       (multiple)\n"
+		"	--dest-mac <arg>     Sets the destination mac.  (multiple)\n"
 	};
 	cout << str;
 }
@@ -252,7 +315,7 @@ int main(int argc, const char* argv[])
 			ss << port_s;
 			uint16_t port;
 			ss >> port;
-			source_port_filter.push_back(ntohs(port));
+			sources_port_filter.push_back(ntohs(port));
 
 			cout << "Set filter source port: " << port_s << endl;
 		}
@@ -273,6 +336,54 @@ int main(int argc, const char* argv[])
 			dest_port_filter.push_back(ntohs(port));
 
 			cout << "Set filter destination port: " << port_s << endl;
+		}
+
+		// --src-mac
+		for (size_t i = 0; i < ap.size(); ++i)
+		{
+			i = ap.find("--src-mac", i);
+			if (i == -1)
+				break;
+
+			auto mac_s = ap.at(i + 1);
+			std::replace(mac_s.begin(), mac_s.end(), ':', ' ');
+			cout << "mac: " << mac_s << endl;
+
+			stringstream ss;
+			ss.str(mac_s);
+			ss >> std::hex;
+			mac m;
+			for (size_t i = 0; i < ETH_ALEN; ++i)
+			{
+				uint16_t byte{};
+				ss >> byte;
+				m.arr[i] = uint8_t(byte);
+			}
+			sources_mac_filter.push_back(m);
+		}
+
+		// --dest-mac
+		for (size_t i = 0; i < ap.size(); ++i)
+		{
+			i = ap.find("--dest-mac", i);
+			if (i == -1)
+				break;
+
+			auto mac_s = ap.at(i + 1);
+			std::replace(mac_s.begin(), mac_s.end(), ':', ' ');
+			cout << "mac: " << mac_s << endl;
+
+			stringstream ss;
+			ss.str(mac_s);
+			ss >> std::hex;
+			mac m;
+			for (size_t i = 0; i < ETH_ALEN; ++i)
+			{
+				uint16_t byte{};
+				ss >> byte;
+				m.arr[i] = uint8_t(byte);
+			}
+			dest_mac_filter.push_back(m);
 		}
 
 		interface = ap.get<string>("--interface", "");
