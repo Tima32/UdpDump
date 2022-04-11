@@ -10,13 +10,18 @@ make all
 ## Usage
 
 Usage: udp-dump [uptions]
-- --interface <arg>    Sellect interface.
--   --src-ip <arg>       Sets the source ip.        (multiple)
--	--dest-ip <arg>      Sets the destination ip.   (multiple)
--	--src-port <arg>     Sets the source port.      (multiple)
--	--dest-port <arg>    Sets the destination port. (multiple)
+- --interface  <arg>    Sellect interface.
+-   --src-ip   <arg>    Sets the source ip.        (multiple)
+-	--dst-ip   <arg>    Sets the destination ip.   (multiple)
+-	--src-port <arg>    Sets the source port.      (multiple)
+-	--dst-port <arg>    Sets the destination port. (multiple)
+-	--src-mac  <arg>    Sets the source mac.       (multiple)
+-	--dst-mac  <arg>    Sets the out max.          (multiple)
+-	-t                  TCP filter.
+-	-u                  UDP filter.
 
 If no filters are specified, then all traffic is accepted.
+If no protocol filter is specified, then TCP and UDP are accepted.
 
 ## Example:
 ```sh

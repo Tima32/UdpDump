@@ -1,6 +1,6 @@
 TARGET=udp-dump
 
-SOURCES=main.cpp
+SOURCES=main.cpp StatisticsOutput/StatisticsOutput.cpp
 
 CC=$(CROSS_COMPILE)g++
 

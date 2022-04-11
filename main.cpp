@@ -13,20 +13,23 @@
 
 #include <linux/ip.h>  /* for ipv4 header */
 #include <linux/udp.h> /* for upd header */
+#include <linux/tcp.h>
 
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <limits>
 #include <algorithm>
+#include <thread>
 #include "ArgumentParserLib/ArgumentParser.hpp"
+#include "StatisticsOutput/StatisticsOutput.hpp"
 
 using namespace std;
 
 #define MSG_SIZE 65535
 #define HEADER_SIZE (sizeof(struct iphdr) + sizeof(struct udphdr))
 
-size_t package_count{0}, bytes_count{0};
+StatisticsOutput so;
 
 vector<uint32_t> sources_ip_filter;
 vector<uint32_t> dest_ip_filter;
@@ -40,16 +43,9 @@ struct mac
 };
 vector<mac> sources_mac_filter;
 vector<mac> dest_mac_filter;
+
 string interface;
-
-string ToIP(uint32_t ipi)
-{
-	uint8_t* bytes = (uint8_t*)&ipi;
-
-	stringstream ss;
-	ss << uint16_t(bytes[0]) << "." << uint16_t(bytes[1]) << "." << uint16_t(bytes[2]) << "." << uint16_t(bytes[3]);
-	return ss.str();
-}
+vector<uint8_t> protocols_filter;
 
 bool SourceIpFilter(uint32_t ip)
 {
@@ -149,6 +145,19 @@ bool DestMacFilter(uint8_t h_source[ETH_ALEN])
 
 	return false;
 }
+bool ProtocolsFilter(uint8_t proto)
+{
+	if (protocols_filter.size() == 0)
+		return true;
+
+	for (auto f : protocols_filter)
+	{
+		if (f == proto)
+			return true;
+	}
+
+	return false;
+}
 
 bool SetPromisc(const char* ifname, bool enable)
 {
@@ -193,7 +202,6 @@ bool SetPromiscAll(bool enable)
 	{
 		if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_PACKET)
 		{
-			printf("%s\n", tmp->ifa_name);
 			bool status = SetPromisc(tmp->ifa_name, enable);
 			if (status == false && enable == true)
 			{
@@ -210,8 +218,6 @@ bool SetPromiscAll(bool enable)
 }
 void Dump() {
 	int raw_socket;
-	//sockaddr_in sockstr;
-	socklen_t socklen{};
 
 	int retval = 0; 
 
@@ -246,6 +252,8 @@ void Dump() {
 			ethhdr* eth = (ethhdr*)        msg;
 			iphdr*  ip =  (struct iphdr*) (msg + sizeof(ethhdr));
 			udphdr* udp = (udphdr*)       (msg + sizeof(ethhdr) + sizeof(iphdr));
+			tcphdr* tcp = (tcphdr*)       (msg + sizeof(ethhdr) + sizeof(iphdr));
+			
 
 			// filters
 			if (!SourceIpFilter(ip->saddr))
@@ -258,32 +266,16 @@ void Dump() {
 			if (!DestPortFilter(udp->dest))
 				continue;
 
+			// For TCP and UDP, the first fields are ports.
 			if (!SourceMacFilter(eth->h_source))
 				continue;
 			if (!DestMacFilter(eth->h_dest))
 				continue;
 
-			// increase counters
-			package_count++;
-			bytes_count += msglen;
+			if (!ProtocolsFilter(ip->protocol))
+				continue;
 
-			cout << "Packages received: " << package_count << " bytes received: " << bytes_count << '\t';
-
-			printf("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x -> ",
-				eth->h_source[0], eth->h_source[1], eth->h_source[2],
-				eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-
-			printf("%.2x:%.2x:%.2x:%.2x:%.2x:%.2x\t",
-				eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
-				eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
-
-			cout << "\tproto: " << uint32_t(ip->protocol) << 
-				"\tip s: " << setw(15) << ToIP(ip->saddr) <<
-				"\tip d: " << setw(15) << ToIP(ip->daddr) <<
-				"\tip l: " << setw(5) << ntohs(ip->tot_len) <<
-				"\tmsgl: " << setw(5) << msglen;
-
-			cout << "\tport s: " << setw(5) << ntohs(udp->source) << "\tport d: " << setw(5) << ntohs(udp->dest) << endl;
+			so.push(reinterpret_cast<StatisticsOutput::Header*>(msg), msglen);
 		}
 	}
 
@@ -298,13 +290,15 @@ void PrintHelp()
 	constexpr char const* str{
 		"Usage: dump [options]\n"
 		"Options:\n"
-		"	--interface <arg>    Sellect interface.\n"
-		"	--src-ip <arg>       Sets the source ip.        (multiple)\n"
-		"	--dest-ip <arg>      Sets the destination ip.   (multiple)\n"
-		"	--src-port <arg>     Sets the source port.      (multiple)\n"
-		"	--dest-port <arg>    Sets the destination port. (multiple)\n"
-		"	--src-mac <arg>      Sets the source mac.       (multiple)\n"
-		"	--dest-mac <arg>     Sets the destination mac.  (multiple)\n"
+		"	--interface <arg>	Sellect interface.\n"
+		"	--src-ip    <arg>	Sets the source ip.        (multiple)\n"
+		"	--dst-ip    <arg>	Sets the destination ip.   (multiple)\n"
+		"	--src-port  <arg>	Sets the source port.      (multiple)\n"
+		"	--dst-port  <arg>	Sets the destination port. (multiple)\n"
+		"	--src-mac   <arg>	Sets the source mac.       (multiple)\n"
+		"	--dst-mac   <arg>	Sets the destination mac.  (multiple)\n"
+		"   -t                  TCP filter.\n"
+		"   -u                  UDP filter.\n"
 	};
 	cout << str;
 }
@@ -447,6 +441,7 @@ int main(int argc, const char* argv[])
 			dest_mac_filter.push_back(m);
 		}
 
+		// --interface
 		interface = ap.get<string>("--interface", "");
 		if (interface.size())
 		{
@@ -465,6 +460,16 @@ int main(int argc, const char* argv[])
 			}
 		}
 		
+		// -t
+		auto tcp = ap.find("-t");
+		if (tcp != -1)
+			protocols_filter.push_back(6);
+
+		// -u
+		auto udp = ap.find("-u");
+		if (udp != -1)
+			protocols_filter.push_back(17);
+
 	}
 	catch (const std::out_of_range& e)
 	{
@@ -476,7 +481,7 @@ int main(int argc, const char* argv[])
 		std::cerr << "Error: " << e.what() << '\n';
 		exit(1);
 	}
-	
+
 	Dump();
 
 	return 0;
