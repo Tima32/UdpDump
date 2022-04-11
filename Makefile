@@ -7,10 +7,10 @@ CC=$(CROSS_COMPILE)g++
 OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
 
 %.o: %.cpp
-	$(CC) -c $^
+	$(CC) -c $^ -o $@
 
 udp-dump: $(OBJECTS)
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ -pthread
 
 all: udp-dump
 
