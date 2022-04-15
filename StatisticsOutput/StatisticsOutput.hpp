@@ -29,8 +29,11 @@ public:
 	void push(const Header* hd, size_t msg_size);
 	Header pop();
 
+	void setPrintStatistics(bool print);
+
 private:
 	void print();
+	void printToConsole(const uint8_t* msg);
 
 	static constexpr size_t size{2048};
 	Header buffer[size];
@@ -38,6 +41,7 @@ private:
 	size_t package_count{ 0 };
 	size_t bytes_count{ 0 };
 	bool done{ false };
+	bool print_to_console{ true };
 
 	std::condition_variable condition;
 	std::mutex m;

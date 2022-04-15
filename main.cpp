@@ -222,15 +222,16 @@ void PrintHelp()
 	constexpr char const* str{
 		"Usage: dump [options]\n"
 		"Options:\n"
-		"	--interface <arg>	Sellect interface.\n"
-		"	--src-ip    <arg>	Sets the source ip.        (multiple)\n"
-		"	--dst-ip    <arg>	Sets the destination ip.   (multiple)\n"
-		"	--src-port  <arg>	Sets the source port.      (multiple)\n"
-		"	--dst-port  <arg>	Sets the destination port. (multiple)\n"
-		"	--src-mac   <arg>	Sets the source mac.       (multiple)\n"
-		"	--dst-mac   <arg>	Sets the destination mac.  (multiple)\n"
-		"   -t                  TCP filter.\n"
-		"   -u                  UDP filter.\n"
+		"	--interface <arg>	  Sellect interface.\n"
+		"	--src-ip    <arg>	  Sets the source ip.        (multiple)\n"
+		"	--dst-ip    <arg>	  Sets the destination ip.   (multiple)\n"
+		"	--src-port  <arg>	  Sets the source port.      (multiple)\n"
+		"	--dst-port  <arg>	  Sets the destination port. (multiple)\n"
+		"	--src-mac   <arg>	  Sets the source mac.       (multiple)\n"
+		"	--dst-mac   <arg>	  Sets the destination mac.  (multiple)\n"
+		"   -t                    TCP filter.\n"
+		"   -u                    UDP filter.\n"
+		"   --no-print-statistics Disables output of statistics to the console.\n"
 	};
 	cout << str;
 }
@@ -401,6 +402,11 @@ void ArgumentParsing(int argc, const char* argv[])
 		auto udp = ap.find("-u");
 		if (udp != -1)
 			protocols_filter.push_back(17);
+
+		// -no-print-statistics
+		auto nps = ap.find("-no-print-statistics");
+		if (nps != -1)
+			so.setPrintStatistics(false);
 
 	}
 	catch (const std::out_of_range& e)
