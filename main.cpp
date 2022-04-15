@@ -216,74 +216,6 @@ bool SetPromiscAll(bool enable)
 	freeifaddrs(addrs);
 	return true;
 }
-void Dump() {
-	int raw_socket;
-
-	int retval = 0; 
-
-	char msg[MSG_SIZE];
-	ssize_t msglen;
-
-	if ((raw_socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) == -1) {
-		perror("socket");
-		return;
-	}
-
-	if (interface.size() &&
-		setsockopt(raw_socket, SOL_SOCKET, SO_BINDTODEVICE, interface.data(), interface.size()))
-	{
-		perror("setsockopt");
-		retval = 1;
-		goto _go_close_socket;
-	}
-		
-
-	while(1)
-	{
-		if ((msglen = recv(raw_socket, msg, MSG_SIZE, 0)) == -1) {
-			perror("recv");
-			retval = 1;
-			goto _go_close_socket;
-		}
-
-		if (msglen <= HEADER_SIZE)
-			cerr << "Bed package: wrong header seize." << endl;
-		else {
-			ethhdr* eth = (ethhdr*)        msg;
-			iphdr*  ip =  (struct iphdr*) (msg + sizeof(ethhdr));
-			udphdr* udp = (udphdr*)       (msg + sizeof(ethhdr) + sizeof(iphdr));
-			tcphdr* tcp = (tcphdr*)       (msg + sizeof(ethhdr) + sizeof(iphdr));
-			
-
-			// filters
-			if (!SourceIpFilter(ip->saddr))
-				continue;
-			if (!DestIpFilter(ip->daddr))
-				continue;
-
-			if (!SourcePortFilter(udp->source))
-				continue;
-			if (!DestPortFilter(udp->dest))
-				continue;
-
-			// For TCP and UDP, the first fields are ports.
-			if (!SourceMacFilter(eth->h_source))
-				continue;
-			if (!DestMacFilter(eth->h_dest))
-				continue;
-
-			if (!ProtocolsFilter(ip->protocol))
-				continue;
-
-			so.push(reinterpret_cast<StatisticsOutput::Header*>(msg), msglen);
-		}
-	}
-
-_go_close_socket:
-	close(raw_socket);
-
-	return;
-}
 
 void PrintHelp()
 {
@@ -302,7 +234,7 @@ void PrintHelp()
 	};
 	cout << str;
 }
-int main(int argc, const char* argv[])
+void ArgumentParsing(int argc, const char* argv[])
 {
 	ArgumentParser ap(argc, argv);
 
@@ -312,7 +244,7 @@ int main(int argc, const char* argv[])
 	if (help_param_pos != -1 || help_param_short_pos != -1)
 	{
 		PrintHelp();
-		return 0;
+		exit(0);
 	}
 
 	try
@@ -330,7 +262,7 @@ int main(int argc, const char* argv[])
 			if (a == INADDR_NONE)
 			{
 				cerr << "Error: bed ip in param " << i + 1 << endl;
-				return 1;
+				exit(1);
 			}
 			sources_ip_filter.push_back(a);
 
@@ -350,7 +282,7 @@ int main(int argc, const char* argv[])
 			if (a == INADDR_NONE)
 			{
 				cerr << "Error: bed ip in param " << i + 1 << endl;
-				return 1;
+				exit(1);
 			}
 			dest_ip_filter.push_back(a);
 
@@ -481,7 +413,80 @@ int main(int argc, const char* argv[])
 		std::cerr << "Error: " << e.what() << '\n';
 		exit(1);
 	}
+}
 
+void Dump() {
+	int raw_socket;
+
+	int retval = 0; 
+
+	char msg[MSG_SIZE];
+	ssize_t msglen;
+
+	if ((raw_socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL))) == -1) {
+		perror("socket");
+		return;
+	}
+
+	if (interface.size() &&
+		setsockopt(raw_socket, SOL_SOCKET, SO_BINDTODEVICE, interface.data(), interface.size()))
+	{
+		perror("setsockopt");
+		retval = 1;
+		goto _go_close_socket;
+	}
+		
+
+	while(1)
+	{
+		if ((msglen = recv(raw_socket, msg, MSG_SIZE, 0)) == -1) {
+			perror("recv");
+			retval = 1;
+			goto _go_close_socket;
+		}
+
+		if (msglen <= HEADER_SIZE)
+			cerr << "Bed package: wrong header seize." << endl;
+		else {
+			ethhdr* eth = (ethhdr*)        msg;
+			iphdr*  ip =  (struct iphdr*) (msg + sizeof(ethhdr));
+			udphdr* udp = (udphdr*)       (msg + sizeof(ethhdr) + sizeof(iphdr));
+			tcphdr* tcp = (tcphdr*)       (msg + sizeof(ethhdr) + sizeof(iphdr));
+			
+
+			// filters
+			if (!SourceIpFilter(ip->saddr))
+				continue;
+			if (!DestIpFilter(ip->daddr))
+				continue;
+
+			if (!SourcePortFilter(udp->source))
+				continue;
+			if (!DestPortFilter(udp->dest))
+				continue;
+
+			// For TCP and UDP, the first fields are ports.
+			if (!SourceMacFilter(eth->h_source))
+				continue;
+			if (!DestMacFilter(eth->h_dest))
+				continue;
+
+			if (!ProtocolsFilter(ip->protocol))
+				continue;
+
+			so.push(reinterpret_cast<StatisticsOutput::Header*>(msg), msglen);
+		}
+	}
+
+_go_close_socket:
+	close(raw_socket);
+
+	return;
+}
+
+int main(int argc, const char* argv[])
+{
+	ArgumentParsing(argc, argv);
 	Dump();
 
 	return 0;
