@@ -5,3 +5,5 @@ UdpDumpMSB.vcxproj.filters
 UdpDumpMSB.vcxproj.user
 bin/
 obj/
+
+.vscode/
