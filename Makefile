@@ -1,21 +1,28 @@
-TARGET=udp-dump
+TRAFFIC_FILTER_TARGET=traffic_filter.elf
+READER_TARGET=reader.elf
 
-SOURCES=main.cpp StatisticsOutput/StatisticsOutput.cpp
+TRAFFIC_FILTER_SOURCES=TrafficFilter/main.cpp TrafficFilter/StatisticsOutput/StatisticsOutput.cpp
+READER_SOURCES=Reader/ReaderMain.cpp
+
+CPPFLAGS=-I./ArgumentParserLib
 
 CC=$(CROSS_COMPILE)g++
 
-OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
+TRAFFIC_FILTER_OBJECTS=$(patsubst %.cpp,%.o,$(TRAFFIC_FILTER_SOURCES))
+READER_OBJECTS=$(patsubst %.cpp,%.o,$(READER_SOURCES))
 
 %.o: %.cpp
-	$(CC) -c $^ -o $@
+	$(CC) $(CPPFLAGS) -c $^ -o $@
 
-udp-dump: $(OBJECTS)
-	$(CC) $^ -o $@ -pthread
+$(TRAFFIC_FILTER_TARGET): $(TRAFFIC_FILTER_OBJECTS)
+	$(CC) $^ -o $@ -pthread -lrt
 
-all: udp-dump
+$(READER_TARGET): $(READER_OBJECTS)
+	$(CC) $^ -o $@ -pthread -lrt
+
+all: $(TRAFFIC_FILTER_TARGET) $(READER_TARGET)
 
 clean:
-	rm -f udp-dump
-	rm $(OBJECTS)
+	rm -f $(TRAFFIC_FILTER_TARGET) $(TRAFFIC_FILTER_OBJECTS) $(READER_TARGET) $(READER_OBJECTS)
 
 .PHONY: all clean
