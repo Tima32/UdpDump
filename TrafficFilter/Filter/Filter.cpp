@@ -28,6 +28,10 @@ static constexpr size_t header_size { sizeof(ethhdr) + sizeof(iphdr) + sizeof(ud
 Filter::Filter(){};
 Filter::~Filter(){};
 
+void Filter::setStatisticsOutput(Stat& s)
+{
+	this->so = &s;
+}
 void Filter::run()
 {
     if (interface.size())
@@ -105,7 +109,7 @@ void Filter::run()
 			if (!ProtocolsFilter(ip->protocol))
 				continue;
 
-			so.push(reinterpret_cast<StatisticsOutput::Header*>(msg), msglen);
+			so->push(reinterpret_cast<Stat::Header*>(msg), msglen);
 		}
 	}
 

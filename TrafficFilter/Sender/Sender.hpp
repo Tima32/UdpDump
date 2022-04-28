@@ -2,7 +2,9 @@
 #include <mutex>
 
 #include "../Stat/Stat.hpp"
-#include "../MqServer/MqServer.hpp"
+//#include "../MqServer/MqServer.hpp"
+
+class MqServer;
 
 class Sender
 {
@@ -24,7 +26,7 @@ private:
 	std::thread print_thread;
 	Stat* statistics{ nullptr };
 
-	mutable std::mutex last_statistics_m;
-	std::string last_statistics;
+	static std::mutex last_statistics_m;
+	static std::string last_statistics;
 	friend MqServer;
 };

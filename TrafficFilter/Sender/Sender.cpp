@@ -5,6 +5,7 @@
 #include <iomanip>
 
 #include "Sender.hpp"
+#include "../MqServer/MqServer.hpp"
 
 using namespace std;
 
@@ -74,7 +75,9 @@ void Sender::print()
 		ss << "\tport s: " << setw(5) << ntohs(udp->source) << "\tport d: " << setw(5) << ntohs(udp->dest) << endl;
 
 		printToConsole(ss.str());
+		last_statistics_m.lock();
 		last_statistics = ss.str();
+		last_statistics_m.unlock();
 	}
 }
 void Sender::printToConsole(const std::string& str)
@@ -91,3 +94,6 @@ string Sender::ToIP(uint32_t ipi)
 	ss << uint16_t(bytes[0]) << "." << uint16_t(bytes[1]) << "." << uint16_t(bytes[2]) << "." << uint16_t(bytes[3]);
 	return ss.str();
 }
+
+std::mutex Sender::last_statistics_m;
+std::string Sender::last_statistics;

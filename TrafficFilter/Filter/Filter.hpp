@@ -2,6 +2,7 @@
 #include <string>
 #include <stdint.h>
 #include <linux/if_ether.h>
+#include "../Stat/Stat.hpp"
 
 class Filter
 {
@@ -9,6 +10,7 @@ public:
 	Filter();
 	~Filter();
 
+	void setStatisticsOutput(Stat& s);
 	void run();
 
 	std::vector<uint32_t> sources_ip_filter;
@@ -38,4 +40,6 @@ private:
 
 	bool SetPromisc(const char* ifname, bool enable);
 	bool SetPromiscAll(bool enable);
+
+	Stat* so;
 };

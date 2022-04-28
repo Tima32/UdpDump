@@ -1,12 +1,13 @@
 #include <signal.h>
+#include <string.h>
 #include <iostream>
 #include "MqServer.hpp"
+#include "../Sender/Sender.hpp"
 
 using namespace std;
 
 #define MSG_Q_NAME "/UDP_DUMP_SERVER_1"
 
-static MqServer* ms{nullptr};
 MqServer::MqServer()
 {
     ms = this;
@@ -15,11 +16,6 @@ void MqServer::run()
 {
     registerClientRequestCallback(true);
 }
-void MqServer::setSender(const Sender& s)
-{
-    sender = &s;
-}
-
 //private
 void MqServer::registerClientRequestCallback(bool unlink)
 {
@@ -53,7 +49,7 @@ void MqServer::registerClientRequestCallback(bool unlink)
 		exit(1);
 	}
 }
-void ClientRequestCallback(union sigval sv)
+void MqServer::ClientRequestCallback(union sigval sv)
 {
     struct mq_attr attr;
     ssize_t nr;
@@ -81,10 +77,33 @@ void ClientRequestCallback(union sigval sv)
     free(buf);
 
 	//Требуется перерегистрация калбека
-	RegisterClientRequestCallback(false);
+	ms->registerClientRequestCallback(false);
 }
 void MqServer::openClientMqAndSendStatistics(const char* name)
 {
+	struct mq_attr attr;
+	memset(&attr, 0, sizeof attr);
+	attr.mq_msgsize = 8192;
+	attr.mq_flags = 0;
+	attr.mq_maxmsg = 10;
 
+	mqd_t msq_id = mq_open(name, O_RDWR | O_CREAT | O_NONBLOCK,
+                         0777, &attr);
+	if(msq_id == (mqd_t) -1)
+	{
+		cout << "Error on msg Q creation: " << strerror(errno) << endl;
+		exit(1);
+	}
+
+
+	Sender::last_statistics_m.lock();
+	if(mq_send(msq_id, Sender::last_statistics.c_str(), strlen(Sender::last_statistics.c_str()), 0) < 0)
+	{
+		if(errno != EAGAIN)
+			cout << "Error on sending msg on MsgQ " << strerror(errno);
+	}
+	Sender::last_statistics_m.unlock();
+	mq_close(msq_id);
 }
 
+MqServer* MqServer::ms{nullptr};
