@@ -6,6 +6,7 @@ class MqServer
 {
 public:
 	MqServer();
+	~MqServer();
 
 	void run();
 

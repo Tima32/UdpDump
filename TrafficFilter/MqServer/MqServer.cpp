@@ -12,6 +12,10 @@ MqServer::MqServer()
 {
     ms = this;
 }
+MqServer::~MqServer()
+{
+	mq_unlink(MSG_Q_NAME);
+}
 void MqServer::run()
 {
     registerClientRequestCallback(true);
