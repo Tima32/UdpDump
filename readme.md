@@ -1,5 +1,4 @@
-# Udp dump
-
+# Trafic Filter
 ## Description
 A program for displaying statistics of received UDP packets by specified filters on a specific network interface.
 ## Buid
@@ -9,7 +8,7 @@ make all
 ```
 ## Usage
 
-Usage: udp-dump [uptions]
+Usage: traffic_filter [uptions]
 - --interface  <arg>    Sellect interface.
 -   --src-ip   <arg>    Sets the source ip.        (multiple)
 -	--dst-ip   <arg>    Sets the destination ip.   (multiple)
@@ -25,7 +24,14 @@ If no protocol filter is specified, then TCP and UDP are accepted.
 
 ## Example:
 ```sh
-udp-ump --interface enp0s3 --src-ip 192.168.0.2 --src-ip 192.168.0.3 --src-port 30123
+sudo ./traffic_filter --interface enp0s3 --src-ip 192.168.0.2 --src-ip 192.168.0.3 --src-port 30123
+```
+
+## Reader
+Requests and outputs to the console statistics from the traffic filter once per second.
+## Example:
+```sh
+sudo ./reader
 ```
 
 ## Author
