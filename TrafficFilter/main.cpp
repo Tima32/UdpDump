@@ -6,9 +6,12 @@
 using namespace std;
 
 void ArgumentParsing(int argc, const char* argv[], Filter& f, Sender& s);
+void RegisterSignal();
 
 int main(int argc, const char* argv[])
 {
+	RegisterSignal();
+
 	Sender sender;
 	Stat stat;
 	Filter filter;

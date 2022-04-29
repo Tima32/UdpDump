@@ -4,6 +4,7 @@
 #include <sstream>
 #include <thread>
 #include <chrono>
+#include <csignal>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h> 
@@ -16,6 +17,17 @@ string client_adr{ "/MY_MSGQ_" };
 mqd_t msq_id{ 0 };
 mq_attr attr;
 char* read_buf { nullptr };
+
+void SignalHandlerTerm( int signum )
+{
+	mq_unlink(client_adr.c_str());
+	exit(0);
+}
+void RegisterSignal()
+{
+	// register signal SIGINT and signal handler  
+	signal(SIGINT, SignalHandlerTerm);
+}
 
 void ConfigureReceiveChanel()
 {
@@ -86,6 +98,7 @@ int main()
 	auto duration = now.time_since_epoch();
 	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 	client_adr += to_string(millis);
+	RegisterSignal();
 
 	ConfigureReceiveChanel();
 	thread read_t{&ReceiveStatisticsAndPrintThread};
