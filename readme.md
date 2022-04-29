@@ -24,8 +24,16 @@ If no protocol filter is specified, then TCP and UDP are accepted.
 
 ## Example:
 ```sh
-sudo ./traffic_filter --interface enp0s3 --src-ip 192.168.0.2 --src-ip 192.168.0.3 --src-port 30123
+sudo ./traffic_filter --interface lo --src-ip 192.168.0.2 --src-ip 192.168.0.3 --dst-port 60000 -u
 ```
+
+## Test
+1. Run the traffic filter as in the example.
+2. Run in another console:
+```sh
+udo tcpreplay -i lo out.64bytes.pcap
+```
+The program must catch 18 packets totaling 1080 bytes.
 
 ## Reader
 Requests and outputs to the console statistics from the traffic filter once per second.

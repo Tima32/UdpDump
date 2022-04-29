@@ -81,7 +81,7 @@ void Filter::run()
 		}
 
 		if (msglen <= header_size)
-			cerr << "Bed package: wrong header seize." << endl;
+			cerr << "Bad package: wrong header seize." << endl;
 		else {
 			ethhdr* eth = (ethhdr*)        msg;
 			iphdr*  ip =  (struct iphdr*) (msg + sizeof(ethhdr));

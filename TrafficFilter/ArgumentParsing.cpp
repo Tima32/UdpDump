@@ -63,10 +63,10 @@ void ArgumentParsing(int argc, const char* argv[], Filter& f, Sender& s)
 			cout << "Set filter source ip: " << ip_s << endl;
 		}
 
-		// --dest-ip
+		// --dst-ip
 		for (size_t i = 0; i < ap.size(); ++i)
 		{
-			i = ap.find("--dest-ip", i);
+			i = ap.find("--dst-ip", i);
 			if (i == -1)
 				break;
 
@@ -104,7 +104,7 @@ void ArgumentParsing(int argc, const char* argv[], Filter& f, Sender& s)
 		// --dest-port
 		for (size_t i = 0; i < ap.size(); ++i)
 		{
-			i = ap.find("--dest-port", i);
+			i = ap.find("--dst-port", i);
 			if (i == -1)
 				break;
 
@@ -143,10 +143,10 @@ void ArgumentParsing(int argc, const char* argv[], Filter& f, Sender& s)
 			f.sources_mac_filter.push_back(m);
 		}
 
-		// --dest-mac
+		// --dst-mac
 		for (size_t i = 0; i < ap.size(); ++i)
 		{
-			i = ap.find("--dest-mac", i);
+			i = ap.find("--dst-mac", i);
 			if (i == -1)
 				break;
 

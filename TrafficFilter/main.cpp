@@ -22,7 +22,7 @@ int main(int argc, const char* argv[])
 	ArgumentParsing(argc, argv, filter, sender);
 
 	sender.run();//does not block the thread.
-	mq_server.run();
+	mq_server.run();//does not block the thread.
 	filter.run();//block the thread.
 	
 

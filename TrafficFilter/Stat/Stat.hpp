@@ -35,8 +35,10 @@ public:
 
 private:
 
-	static constexpr size_t size{2048};
+	static constexpr size_t size{128};
 	Header buffer[size];
+	size_t buffer_package_count[size];
+	size_t buffer_bytes_count[size];
 	size_t pos_read{ 0 }, pos_write{ 0 };
 	size_t package_count{ 0 };
 	size_t bytes_count{ 0 };
