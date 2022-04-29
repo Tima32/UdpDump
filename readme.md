@@ -31,9 +31,9 @@ sudo ./traffic_filter --interface lo --src-ip 192.168.0.2 --src-ip 192.168.0.3 -
 1. Run the traffic filter as in the example.
 2. Run in another console:
 ```sh
-udo tcpreplay -i lo out.64bytes.pcap
+sudo tcpreplay -i lo out.64bytes.pcap
 ```
-The program must catch 18 packets totaling 1080 bytes.
+The program must catch 18 packets 1080 bytes.
 
 ## Reader
 Requests and outputs to the console statistics from the traffic filter once per second.
