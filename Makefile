@@ -1,7 +1,7 @@
 TRAFFIC_FILTER_TARGET=traffic_filter.elf
 READER_TARGET=reader.elf
 
-TRAFFIC_FILTER_SOURCES=TrafficFilter/main.cpp TrafficFilter/StatisticsOutput/StatisticsOutput.cpp TrafficFilter/Filter/Filter.cpp TrafficFilter/MqServer/MqServer.cpp TrafficFilter/Sender/Sender.cpp TrafficFilter/Stat/Stat.cpp TrafficFilter/ArgumentParsing.cpp
+TRAFFIC_FILTER_SOURCES=TrafficFilter/main.cpp TrafficFilter/Filter/Filter.cpp TrafficFilter/MqServer/MqServer.cpp TrafficFilter/Sender/Sender.cpp TrafficFilter/Stat/Stat.cpp TrafficFilter/ArgumentParsing.cpp
 READER_SOURCES=Reader/ReaderMain.cpp
 
 CPPFLAGS=-I./ArgumentParserLib
