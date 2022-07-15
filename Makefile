@@ -13,9 +13,6 @@ READER_OBJECTS=$(patsubst %.cpp,%.o,$(READER_SOURCES))
 
 all: $(TRAFFIC_FILTER_TARGET) $(READER_TARGET)
 
-# %.o: %.cpp
-# 	$(CC) $(CPPFLAGS) -c $^ -o $@
-
 $(TRAFFIC_FILTER_TARGET): $(TRAFFIC_FILTER_OBJECTS)
 	$(CC) $^ -o $@ -pthread -lrt
 
